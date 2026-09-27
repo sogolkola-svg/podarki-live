@@ -1,2 +1,80 @@
 # podarki-live
 Таблица подарков для эфира
+from pathlib import Path
+import zipfile
+
+html = r'''<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Подарки LIVE — Таблица стран</title>
+<style>
+:root{--bg:#080b12;--card:#111722;--line:#303948;--text:#f8fafc;--muted:#aab4c3}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#293548 0,#0a0e16 55%,#05070b 100%);color:var(--text);font-family:Arial,sans-serif}
+.wrap{width:min(900px,100%);margin:auto;padding:18px}
+.header{text-align:center;margin-bottom:16px}
+h1{margin:0;font-size:32px;text-transform:uppercase;text-shadow:0 2px 10px #000}
+.sub{color:var(--muted);margin-top:6px}
+.chrome{background:linear-gradient(110deg,#707b8a,#f5f7fa 25%,#6c7786 48%,#eef1f4 70%,#596473);color:#111;border-radius:18px;padding:12px;margin:14px 0;font-weight:900;text-align:center;box-shadow:inset 0 1px 2px #fff,0 7px 25px #0008}
+.panel{background:#111722dd;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 12px 35px #0008}
+.head,.row{display:grid;grid-template-columns:minmax(0,1fr) 90px 150px;gap:10px;align-items:center}
+.head{padding:12px 14px;background:#1a2230;color:#aeb8c6;font-size:13px;text-transform:uppercase;font-weight:800}
+.row{padding:10px 14px;border-top:1px solid #27303d}
+.country{font-size:20px;font-weight:800}.score{text-align:center;font-size:24px;font-weight:900}
+.actions{display:flex;justify-content:flex-end;gap:7px}
+button{border:0;border-radius:11px;color:white;font-weight:900;font-size:20px;min-width:45px;height:42px;cursor:pointer}
+.plus{background:#159447}.minus{background:#c93434}.zero{background:#465264;font-size:14px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:14px 0}
+.toolbar button{font-size:15px;padding:0 15px;background:#334155}
+.toolbar .reset{background:#7136b8}
+.note{text-align:center;color:#9ca8b8;font-size:13px;margin:12px}
+@media(max-width:600px){.head,.row{grid-template-columns:minmax(0,1fr) 55px 125px}.country{font-size:17px}.score{font-size:21px}.actions button{min-width:38px;height:38px}.wrap{padding:10px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="header"><h1>🌍 ПОДАРКИ LIVE</h1><div class="sub">Таблица стран • 1 подарок = 1 очко</div></header>
+<div class="chrome">🏆 ХРОМ-ТУРНИР • КТО НАБЕРЁТ БОЛЬШЕ? 🏆</div>
+<div class="toolbar">
+<button onclick="sortScores()">⇅ По очкам</button>
+<button onclick="sortAlpha()">А–Я</button>
+<button class="reset" onclick="resetScores()">↻ Сбросить всё</button>
+</div>
+<section class="panel">
+<div class="head"><div>Страна</div><div>Очки</div><div>Подарки</div></div>
+<div id="table"></div>
+</section>
+<div class="note">Очки сохраняются автоматически на этом устройстве.</div>
+</div>
+<script>
+const countries=[
+["🇺🇦","Украина"],["🇲🇩","Молдова"],["🇮🇱","Израиль"],["🇦🇲","Армения"],["🇧🇾","Беларусь"],
+["🇰🇿","Казахстан"],["🇺🇿","Узбекистан"],["🇹🇯","Таджикистан"],["🇦🇿","Азербайджан"],["🇹🇲","Туркменистан"],
+["🇰🇬","Кыргызстан"],["🇬🇪","Грузия"],["🇱🇻","Латвия"],["🇱🇹","Литва"],["🇨🇿","Чехия"],
+["🇸🇰","Словакия"],["🇵🇱","Польша"],["🇬🇷","Греция"],["🇷🇴","Румыния"],["🇩🇪","Германия"],
+["🇷🇺","Россия"],["🇹🇷","Турция"],["🇫🇷","Франция"],["🇪🇸","Испания"],["🇮🇹","Италия"],
+["🇨🇳","Китай"],["🇬🇧","Великобритания"],["🇺🇸","США"],["🇨🇦","Канада"],["🇧🇷","Бразилия"]
+];
+let scores=JSON.parse(localStorage.getItem("giftLiveScores")||"{}");
+countries.forEach(x=>{if(scores[x[1]]==null)scores[x[1]]=0});
+function save(){localStorage.setItem("giftLiveScores",JSON.stringify(scores))}
+function render(list=countries){
+document.getElementById("table").innerHTML=list.map(([f,n])=>`
+<div class="row"><div class="country">${f} ${n}</div><div class="score">${scores[n]}</div>
+<div class="actions"><button class="minus" onclick="change('${n}',-1)">−</button><button class="plus" onclick="change('${n}',1)">+</button><button class="zero" onclick="setZero('${n}')">0</button></div></div>`).join("");
+}
+function change(n,v){scores[n]=Math.max(0,scores[n]+v);save();render()}
+function setZero(n){scores[n]=0;save();render()}
+function sortScores(){render([...countries].sort((a,b)=>scores[b[1]]-scores[a[1]]))}
+function sortAlpha(){render([...countries].sort((a,b)=>a[1].localeCompare(b[1],"ru")))}
+function resetScores(){if(confirm("Сбросить все очки?")){countries.forEach(x=>scores[x[1]]=0);save();render()}}
+render();
+</script>
+</body>
+</html>'''
+p=Path("/mnt/data/podarki_live_site.html")
+p.write_text(html,encoding="utf-8")
+z=Path("/mnt/data/podarki_live_site.zip")
+with zipfile.ZipFile(z,"w",zipfile.ZIP_DEFLATED) as f:f.write(p,arcname="index.html")
+print(f"[📦 Скачать готовый сайт (ZIP)](sandbox:{z})")
